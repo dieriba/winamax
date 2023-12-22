@@ -42,7 +42,6 @@ class GolfSolver
         /*Constructor*/
         GolfSolver(const std::vector<std::vector<NODE>>& golfMap, const BALL& ball, int ballCount) {
             this->_ball = ball;
-            printBall();
             this -> _golfMap = golfMap ;
             _numCol = _golfMap[0].size();
             _numRow = this->_golfMap.size();
@@ -54,7 +53,6 @@ class GolfSolver
         };
         
         void printGolfMap(const std::string& visit = "RESULT") {
-            std::cout << visit << std::endl;
             for (size_t i = 0; i < this ->_golfMap.size(); i++)
             {
                 for (size_t j = 0; j < this->_golfMap[i].size(); j++)
@@ -67,24 +65,17 @@ class GolfSolver
             
         }
 
-        void printBall() {
-            std::cout << "Ball is located at: " << "[" << this->_ball.row << "]" << "[" << this->_ball.col << "]" << " and has a shot count of: " << this->_ball.shotCount << std::endl;
-        }
-
 
         bool holeEmUp(int row, int col, int shotCount) {
 
             if (this->_golfMap[row][col].environnement == HOLE) {
-                if (this->_golfMap[row][col].balled)
-                    std::cout << "Hole is full" << std::endl;
-                else
-                    std::cout << "Hole is empty" << std::endl;
+                BALL prevBAll = this->_ball;
                 this->_golfMap[row][col].balled = true;
                 this->_hole--;
-                std::cout << "Found hole at: " << "[" << row << "]" << "[" << col << "] " << "hole left: " << this->_hole << std::endl; 
                 if (this->findNextBall() && (this->_hole
                     && !this->holeEmUp(this->_ball.row, this->_ball.col, this->_ball.shotCount)))
                 {
+                    this->_ball = prevBAll;
                     this->_hole++;
                     this->_golfMap[row][col].balled = false;
                     return false;
@@ -96,27 +87,26 @@ class GolfSolver
 
             if (shotCount == 0) return false;
 
+            if (row + shotCount < this->_numRow && (!this->checkIfVisitedAndCanCross(row, col, shotCount, DOWN) &&
+                    (holeEmUp(row + shotCount, col, shotCount - 1) || (this->*_visitOrClean[DOWN])(row, col, shotCount, false))))
+            {
+                return true;
+            }
+
+            if (col - shotCount >= 0 && (!this->checkIfVisitedAndCanCross(row, col, shotCount, LEFT) &&
+                    (holeEmUp(row, col - shotCount, shotCount - 1) || (this->*_visitOrClean[LEFT])(row, col, shotCount, false))))
+            {
+                return true;
+            }
+
             if (col + shotCount < this->_numCol && (!this->checkIfVisitedAndCanCross(row, col, shotCount, RIGHT) &&
                     (holeEmUp(row, col + shotCount, shotCount - 1) || (this->*_visitOrClean[RIGHT])(row, col, shotCount, false))))
             {
                 return true;
             }
             
-            if (row + shotCount < this->_numRow && (!this->checkIfVisitedAndCanCross(row, col, shotCount, DOWN) &&
-                    (holeEmUp(row + shotCount, col, shotCount - 1) || (this->*_visitOrClean[DOWN])(row, col, shotCount, false))))
-            {
-                return true;
-            }
-            
             if (row - shotCount >= 0 && (!this->checkIfVisitedAndCanCross(row, col, shotCount, UP) &&
                     (holeEmUp(row - shotCount,  col, shotCount - 1) || (this->*_visitOrClean[UP])(row, col, shotCount, false))))
-            {
-                return true;
-            }
-            
-
-            if (col - shotCount >= 0 && (!this->checkIfVisitedAndCanCross(row, col, shotCount, LEFT) &&
-                    (holeEmUp(row, col - shotCount, shotCount - 1) || (this->*_visitOrClean[LEFT])(row, col, shotCount, false))))
             {
                 return true;
             }
@@ -162,13 +152,10 @@ class GolfSolver
                 return false;
             }
 
-            std::cout << "VISIT_DOWN Row value is: " << row << " Col value: is " << col << std::endl;
-            std::cout << "VISIT_DOWN SHOTCOUNT VALUE: " << shotCount << std::endl;
             for (; i < stop; i++)
             {
                 if (GolfSolver::cantCross(i + 1, col, shotCount, stop == i + 1))
                 {
-                   std::cout << "Entered i value: is: " << i + 1 << " col value is: " << col << std::endl;
                     for (size_t j = row; j < i; j++)
                     {
                         updateNode(j, col, false, NONE);
@@ -177,16 +164,12 @@ class GolfSolver
                 }
                 updateNode(i, col, true, DOWN);
             }
-            std::cout << "VISIT_DOWN_End position i " << i << " col " << col << std::endl; 
-            printGolfMap("VISIT_DOWN_MAP");
-          //  std::cout << "Row value is: " << row << " col valuie: is " << col << std::endl;
+
             return false;
         }
 
         bool visitUpOrClearUp(int row, int col, int shotCount, bool visit) {
             size_t i = row;
-            std::cout << "VISIT_UP Row value is: " << row << " Col valuie: is " << col << std::endl;
-            std::cout << "VISIT_UP SHOTCOUNT VALUE: " << shotCount << std::endl;
             size_t stop = i - shotCount;
             
             if (!visit)
@@ -203,7 +186,6 @@ class GolfSolver
             {
                 if (GolfSolver::cantCross(i - 1, col, shotCount, stop == i - 1))
                 {
-                    std::cout << "VISIT_UP condition not met: " << "i: " << i - 1 << " col: " << col << std::endl;
                     for (size_t j = row; j > i; j--)
                     {
                         updateNode(j, col, false, NONE);
@@ -212,17 +194,13 @@ class GolfSolver
                 }
                 updateNode(i, col, true, UP);
             }
-            std::cout << "VISIT_UP_END_POSITION: " << i << " col: " << col << std::endl;
-            printGolfMap("VISIT_UP_MAP");
             return false;
         }
 
         bool visitRightOrClearRight(int row, int col, int shotCount, bool visit) {
 
             size_t i = col;
-            std::cout << "VISIT_RIGHT row: "  << row << " COl value is " << col << std::endl;
             size_t stop = i + shotCount;
-            std::cout << "VISIT_RIGHT SHOTCOUNT VALUE: " << shotCount << std::endl;
 
             if (!visit)
             {    
@@ -239,7 +217,6 @@ class GolfSolver
             {
                 if (GolfSolver::cantCross(row, i + 1, shotCount, stop == i + 1))
                 {
-                    std::cout << "VISIT_RIGHT CONDITION_NOT_MET: " << "row " << row << " col " << i + 1 << std::endl;
                     for (size_t j = col; j < i; j++)
                     {
                         updateNode(row, j, false, NONE);
@@ -249,8 +226,7 @@ class GolfSolver
                 }
                 updateNode(row, i, true, RIGHT);
             }
-            printGolfMap("VISIT_RIGHT");
-            std::cout << "VISIT_RIGHT End position " << "Row: " << row << " Col: " << i << std::endl;
+
             return false;
         }
 
@@ -313,7 +289,6 @@ class GolfSolver
                         this->_ball.row = i;
                         this->_ball.col = j;
                         this->_ball.shotCount = this->_golfMap[i][j].environnement - '0';
-                        printBall();
                         return true;
                     }
                 }
@@ -356,10 +331,6 @@ int main()
         
     }
     GolfSolver golfLair(golf, ball, ballCount);
-    if (golfLair.holeEmUp(ball.row, ball.col, ball.shotCount)) {
-        std::cout << "Map resolved" << std::endl;
-    }
-    else 
-        std::cout << "Map not resolved" << std::endl;
+    golfLair.holeEmUp(ball.row, ball.col, ball.shotCount);
     golfLair.printGolfMap();
 }
